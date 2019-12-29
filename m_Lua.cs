@@ -28,7 +28,7 @@ namespace MAIN
 		void OnUserSay(string nick, ref Channel chan, string message,
 			int length, ref string[] args)
 		{
-			if (args[0] != "$" && args[0] != "$lua")
+			if (args[0] != G.settings["prefix"] && args[0] != G.settings["prefix"]+"lua")
 				return;
 
 			if (lua_timer.IsRunning)

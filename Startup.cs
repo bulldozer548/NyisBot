@@ -83,9 +83,9 @@ namespace MAIN
 				bool is_valid = false;
 
 				if (read_key)
-					is_valid = cur > ' ' && cur != '=';
+					is_valid = (cur > ' ' || cur == '\u0002' || cur == '\u0003' || cur == '\u001D' || cur == '\u001F' || cur == '\u0016' || cur == '\u000F') && cur != '=';
 				else
-					is_valid = cur > ' ' || (cur == ' ' && snap);
+					is_valid = (cur > ' ' || cur == '\u0002' || cur == '\u0003' || cur == '\u001D' || cur == '\u001F' || cur == '\u0016' || cur == '\u000F') || (cur == ' ' && snap);
 
 				// Ignore comments
 				if (i + 1 < text.Length && cur == '/' && text[i + 1] == '*') {

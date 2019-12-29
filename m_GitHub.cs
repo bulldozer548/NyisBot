@@ -27,7 +27,7 @@ namespace MAIN
 		void OnUserSay(string nick, ref Channel chan, string message,
 			int length, ref string[] args)
 		{
-			if (args[0] != "$updghp")
+			if (args[0] != G.settings["prefix"]+"updghp")
 				return;
 
 			if (chan.nicks[nick] != G.settings["owner_hostmask"]) {

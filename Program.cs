@@ -143,7 +143,7 @@ namespace MAIN
 					}
 				}
 			}
-			L.Log("E::LoopThread, Disconneted", true);
+			L.Log("E::LoopThread, Disconnected", true);
 		}
 
 		void TimeoutThread()
@@ -299,7 +299,7 @@ namespace MAIN
 			}
 
 			#region CMD detection
-			if (args[0][0] == '$') {
+			if (args[0].StartsWith(G.settings["prefix"])) {
 				// Do nothing :)
 			} else if (length > 1 &&
 				args[0].ToLower() == G.settings["nickname"].ToLower() + ":") {
@@ -307,8 +307,8 @@ namespace MAIN
 				for (int i = 1; i < length; i++)
 					args[i - 1] = args[i];
 				length--;
-				if (args[0][0] != '$')
-					args[0] = '$' + args[0];
+				if (!args[0].StartsWith(G.settings["prefix"]))
+					args[0] = G.settings["prefix"] + args[0];
 				args[length] = "";
 			} else {
 				return;
@@ -318,23 +318,23 @@ namespace MAIN
 
 			OnUserSay(nick, ref chan, message, length, ref args);
 
-			switch (args[0]) {
+			switch (args[0].Substring(G.settings["prefix"].Length)) {
 			#region MISC
-			case "$help":
+			case "help":
 				if (args[1].ToLower() == "lgame") {
-					Say(channel, nick + ": $ljoin, $lleave, $lstart, $ladd, $lcheck, $lcards. " +
+					Say(channel, nick + $": {G.settings["prefix"]}ljoin, {G.settings["prefix"]}lleave, {G.settings["prefix"]}lstart, {G.settings["prefix"]}ladd, {G.settings["prefix"]}lcheck, {G.settings["prefix"]}lcards. " +
 						"You can find a tutorial in the help file.");
 					return;
 				}
-				Say(channel, nick + ": $info, [$lua/$] <text../help()>, $rev <text..>, " +
-					"$c <text..>, $tell <nick> <text..>, $help lgame, $updghp. See also: " +
+				Say(channel, nick + $": {G.settings["prefix"]}info, [{G.settings["prefix"]}lua/{G.settings["prefix"]}] <text../help()>, {G.settings["prefix"]}rev <text..>, " +
+					$"{G.settings["prefix"]}c <text..>, {G.settings["prefix"]}tell <nick> <text..>, {G.settings["prefix"]}help lgame, {G.settings["prefix"]}updghp. See also: " +
 					"https://github.com/SmallJoker/NyisBot/blob/master/HELP.txt");
 				break;
-			case "$info":
-			case "$about":
+			case "info":
+			case "about":
 				Say(channel, nick + ": " + G.settings["identifier"]);
 				break;
-			case "$join":
+			case "join":
 				if (hostmask != G.settings["owner_hostmask"]) {
 					Say(channel, nick + ": who are you?");
 					return;
@@ -342,7 +342,7 @@ namespace MAIN
 				if (args[1] != "")
 					Join(args[1]);
 				break;
-			case "$part":
+			case "part":
 				if (hostmask != G.settings["owner_hostmask"]) {
 					Say(channel, nick + ": who are you?");
 					return;
@@ -352,7 +352,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region Reverse
-			case "$rev": {
+			case "rev": {
 					if (length == 1) {
 						Say(channel, nick + ": Expected arguments: <text ..>");
 						return;
@@ -396,7 +396,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region Colorize
-			case "$c": {
+			case "c": {
 					string str = "";
 					for (int i = 1; i < length; i++) {
 						if (i + 1 < length)

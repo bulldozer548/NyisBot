@@ -75,8 +75,8 @@ namespace MAIN
 			if (chan.name[0] != '#')
 				return;
 
-			switch (args[0]) {
-			case "$timebomb": {
+			switch (args[0].Substring(G.settings["prefix"].Length)) {
+			case "timebomb": {
 					string channel = chan.name;
 					if (m_timers.ContainsKey(channel)) {
 						E.Say(channel, "Only one timebomb is allowed at a time.");
@@ -111,13 +111,13 @@ namespace MAIN
 	
 					m_timers[channel] = data;
 					E.Say(channel, args[1] + ": Tick tick.. " + (int)(data.timer.Interval / 1000.0)
-					      + "s until explosion. Try $cutwire <color> from one of these colors: " + choice_str);
+					      + $"s until explosion. Try {G.settings["prefix"]}cutwire <color> from one of these colors: " + choice_str);
 				}
 				break;
-			case "$cutewire":
+			case "cutewire":
 					E.Say(chan.name, nick +": Are you stupid or what? Try better next time.");
 				break;
-			case "$cutwire": {
+			case "cutwire": {
 					if (!m_timers.ContainsKey(chan.name)) {
 						E.Say(chan.name, "There's no timebomb to disarm.");
 						return;

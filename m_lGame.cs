@@ -58,9 +58,9 @@ namespace MAIN
 				return;
 			string channel = chan.name;
 
-			switch (args[0]) {
+			switch (args[0].Substring(G.settings["prefix"].Length)) {
 			#region L join
-			case "$ljoin": {
+			case "ljoin": {
 					int player_i = FindPlayer(channel, nick);
 					if (player_i >= 0) {
 						E.Notice(nick, "You are already part of the game.");
@@ -87,7 +87,7 @@ namespace MAIN
 					int count = c.lg_players.Count;
 					string text = "Player " + nick + " joined the game. Total " + count + " players ready.";
 					if (count > 2)
-						text += " If you want to start the game, use \"$lstart\"";
+						text += $" If you want to start the game, use \"{G.settings["prefix"]}lstart\"";
 					else if (count == 1)
 						text += " At least 3 players are required to start the game.";
 					E.Say(channel, text);
@@ -95,7 +95,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L leave
-			case "$lleave": {
+			case "lleave": {
 					int player_i = FindPlayer(channel, nick);
 					if (player_i < 0) {
 						E.Notice(nick, "You are not part of the game.");
@@ -107,7 +107,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L start
-			case "$lstart": {
+			case "lstart": {
 					int player_i = FindPlayer(channel, nick);
 					if (player_i < 0) {
 						E.Notice(nick, "You are not part of the game.");
@@ -155,7 +155,7 @@ namespace MAIN
 					c.lg_nick = 0;
 					c.lg_stack.Clear();
 					E.Say(channel, "Game started! Player " + c.lg_players[0].nick +
-						" can play the first card using \"$ladd <'main card'> <card nr.> [<card nr.> [<card nr.>]]\"" +
+						$" can play the first card using \"{G.settings["prefix"]}ladd <'main card'> <card nr.> [<card nr.> [<card nr.>]]\"" +
 						" (Card nr. from your hand)");
 
 					CheckCards(channel);
@@ -163,7 +163,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L cards
-			case "$lcards": {
+			case "lcards": {
 					int player_i = FindPlayer(channel, nick);
 					if (player_i < 0) {
 						E.Notice(nick, "You are not part of the game.");
@@ -177,7 +177,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L add
-			case "$ladd": {
+			case "ladd": {
 					int player_index = FindPlayer(channel, nick);
 					if (player_index < 0) {
 						E.Notice(nick, "You are not part of the game. (yet?)");
@@ -187,7 +187,7 @@ namespace MAIN
 					LGameChannel c = getChannelId(channel);
 
 					if (!c.lg_running) {
-						E.Notice(nick, "The game is not running yet. Use \"$lstart\"");
+						E.Notice(nick, $"The game is not running yet. Use \"{G.settings["prefix"]}lstart\"");
 						return;
 					}
 
@@ -267,7 +267,7 @@ namespace MAIN
 						bool success = c.lg_players[current_player]
 							.cards.Remove(l_card);
 						if (!success)
-							L.Log("m_lGame::$ladd, failed to remove cards", true);
+							L.Log($"m_lGame::{G.settings["prefix"]}ladd, failed to remove cards", true);
 					}
 
 					int next_player = c.lg_nick;
@@ -290,7 +290,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L Check
-			case "$lcheck": {
+			case "lcheck": {
 					int checker_id = FindPlayer(channel, nick);
 					if (checker_id < 0) {
 						E.Notice(nick, "You are not part of the game.");
@@ -300,7 +300,7 @@ namespace MAIN
 					LGameChannel c = getChannelId(channel);
 
 					if (!c.lg_running) {
-						E.Notice(nick, "The game is not running yet. Use \"$lstart\"");
+						E.Notice(nick, $"The game is not running yet. Use \"{G.settings["prefix"]}lstart\"");
 						return;
 					}
 
@@ -370,7 +370,7 @@ namespace MAIN
 				break;
 			#endregion
 			#region L set cards
-			case "$lsetcards":
+			case "lsetcards":
 				if (chan.nicks[nick] != G.settings["owner_hostmask"]) {
 					E.Say(channel, nick + ": who are you?");
 					return;

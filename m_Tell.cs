@@ -64,7 +64,7 @@ namespace MAIN
 		void OnUserSay(string nick, ref Channel chan, string message,
 			int length, ref string[] args)
 		{
-			if (args[0] != "$tell")
+			if (args[0] != G.settings["prefix"]+"tell")
 				return;
 
 			if (length < 2) {
@@ -119,7 +119,7 @@ namespace MAIN
 				foreach (int c_id in in_channel) {
 					if (E.chans[c_id].nicks.ContainsKey(nick)) {
 						E.Notice(nick, "Found " + user_normal + " in channel " +
-							E.chans[c_id].name + " no need to use $tell.");
+							E.chans[c_id].name + $" no need to use {G.settings["prefix"]}tell.");
 						return;
 					}
 				}
