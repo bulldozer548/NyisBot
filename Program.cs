@@ -425,7 +425,7 @@ namespace MAIN
 		{
 			L.Log('[' + status + "] " + content);
 
-			if (content == "*** Checking Ident")
+			if (content.StartsWith("***"))
 				status = "001";
 
 			switch (status) {
