@@ -1,7 +1,7 @@
 address = irc.losslessone.com
 port    = 6697
 
-identifier = IRC bot - Created by Krock, handcrafted. [C#] 2014-2019
+identifier = IRC bot - Created by Krock, handcrafted. [C#] 2014-2020
 prefix = $
 
 nickname = NyisBot

@@ -14,3 +14,7 @@ obj/
 # Database files
 *.sqlite3
 *.db
+
+# Ignore Visual Studio directory
+
+.vs/
