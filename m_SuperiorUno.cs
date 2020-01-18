@@ -127,7 +127,7 @@ namespace MAIN
 		{
 			m_channels = new Dictionary<string, UnoChannel>();
 
-			var cmd = manager.GetChatcommand().Add("$uno");
+			var cmd = manager.GetChatcommand().Add(G.settings["prefix"] + "uno");
 			cmd.SetMain(delegate (string nick, string message) {
 				var channel = p_manager.GetChannel();
 				channel.Say(nick + ": Available subcommands: " + cmd.CommandsToString() +
@@ -286,7 +286,7 @@ namespace MAIN
 			if (!change_face && put_color == CardColor.NONE ||
 					!card_faces.Contains(put_face)) {
 
-				E.Notice(nick, "Invalid input. Syntax: $uno p <color> <face>.");
+				E.Notice(nick, $"Invalid input. Syntax: {G.settings["prefix"]}uno p <color> <face>.");
 				return;
 			}
 

@@ -6,8 +6,8 @@ namespace MAIN
 		public m_Builtin(Manager manager) : base("Builtin", manager)
 		{
 			var cmd = p_manager.GetChatcommand();
-			cmd.Add("$help", Cmd_help);
-			cmd.Add("$c", Cmd_c);
+			cmd.Add(G.settings["prefix"] + "help", Cmd_help);
+			cmd.Add(G.settings["prefix"] + "c", Cmd_c);
 		}
 
 		public override void OnUserSay(string nick, string message,
@@ -16,8 +16,8 @@ namespace MAIN
 			Channel channel = p_manager.GetChannel();
 			string hostmask = channel.GetHostmask(nick);
 
-			switch (args[0]) {
-			case "$join":
+			switch (args[0].Substring(G.settings["prefix"].Length)) {
+			case "join":
 				if (hostmask != G.settings["owner_hostmask"]) {
 					channel.Say(nick + ": who are you?");
 					return;
@@ -25,7 +25,7 @@ namespace MAIN
 				if (args[1] != "")
 					E.Join(args[1]);
 				break;
-			case "$part":
+			case "part":
 				if (hostmask != G.settings["owner_hostmask"]) {
 					channel.Say(nick + ": who are you?");
 					return;
@@ -41,7 +41,7 @@ namespace MAIN
 			var channel = p_manager.GetChannel();
 			var cmd = p_manager.GetChatcommand();
 
-			channel.Say(nick + ": [$lua/$] <text../help()>, $c <text..>, " +
+			channel.Say(nick + $": [{G.settings["prefix"]}lua/{G.settings["prefix"]}] <text../help()>, {G.settings["prefix"]}c <text..>, " +
 				cmd.CommandsToString() + ". See also: " +
 				"https://github.com/SmallJoker/NyisBot/blob/master/HELP.txt");
 		}
