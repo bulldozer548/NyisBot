@@ -40,7 +40,7 @@ namespace MAIN
 					if (chans[i].Length < 2 || chans[i][0] != '#')
 						continue;
 
-					e.Join(chans[i]);
+					E.Join(chans[i]);
 				}
 			};
 
@@ -50,7 +50,13 @@ namespace MAIN
 #endif
 
 			while (true) {
-				string str = Console.ReadLine();
+				string str = "";
+				try {
+					str = Console.ReadLine();
+				} catch {
+					L.Log("ReadLine() error. Mono sucks.", true);
+				}
+
 				if (str == "q" ||
 					str == "exit" ||
 					str == "quit") {

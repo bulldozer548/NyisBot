@@ -4,152 +4,155 @@ using System.Threading;
 
 namespace MAIN
 {
-	class m_Tell
+	struct TellInfo
+	{
+		public string dst_nick, src_nick, datetime, text;
+
+		public string[] Serialize()
+		{
+			return new string[] {
+				dst_nick,
+				src_nick,
+				datetime,
+				text
+			};
+		}
+
+		public static TellInfo Deserialize(string[] data)
+		{
+			return new TellInfo {
+				dst_nick = data[0],
+				src_nick = data[1],
+				datetime = data[2],
+				text = data[3]
+			};
+		}
+	}
+
+	class m_Tell : Module
 	{
 		const string TELL_TEXT_DB = "tell_text.db";
 
-		// <to nick> <from nick> <datetime> <text>
-		List<string[]> tell_text;
+		List<TellInfo> tell_text;
 		string tell_last = "";
 		bool tell_save_required = false;
 
-		public m_Tell(bool is_restart)
+		public m_Tell(Manager manager) : base("Tell", manager)
 		{
-			if (!is_restart)
-				TellLoad();
+			TellLoad();
 
-			E.OnPong += SaveIfRequired;
-			E.OnUserSay += OnUserSay;
-			E.OnExit += SaveIfRequired;
-			E.OnUserJoin += delegate(string nick, string hostmask, string channel) {
-				TellTell(nick, channel);
-				TellSave(true);
+			E.OnPong += delegate {
+				TellSave(false);
 			};
-			E.OnUserRename += FindTellUser;
+
+			p_manager.GetChatcommand().Add(G.settings["prefix"] + "tell", Cmd_tell);
 		}
 
 		~m_Tell()
 		{
-			SaveIfRequired();
+			TellSave(false);
 		}
 
-		public void SaveIfRequired()
+		public override void CleanStage()
 		{
-			if (tell_save_required)
-				TellSave(false);
+			TellSave(false);
 		}
 
-		public void OnChannelJoin(ref Channel chan)
+		public override void OnUserJoin(string nick)
 		{
-			foreach (KeyValuePair<string, string> nick in chan.nicks)
-				TellTell(nick.Key, chan.name);
-
-			TellSave(true);
+			TellTell(nick, p_manager.GetChannel().GetName());
 		}
 
-		public void FindTellUser(string nick, string hostmask, string old_nick)
+		public override void OnUserRename(string nick, string old_nick)
 		{
-			foreach (Channel c in E.chans) {
-				if (c == null || c.name[0] != '#')
-					continue;
-				foreach (KeyValuePair<string, string> user in c.nicks) {
-					if (user.Key == nick) {
-						TellTell(nick, c.name);
-						return;
-					}
+			foreach (Channel channel in p_manager.UnsafeGetChannels()) {
+				if (channel.nicks.ContainsKey(nick)) {
+					TellTell(nick, channel.GetName());
+					return;
 				}
 			}
+			// When everything else failed - user is apparently online
+			TellTell(nick, nick);
 		}
 
-		void OnUserSay(string nick, ref Channel chan, string message,
-			int length, ref string[] args)
+		void Cmd_tell(string nick, string message)
 		{
-			if (args[0] != G.settings["prefix"]+"tell")
-				return;
+			Channel channel = p_manager.GetChannel();
+			string dst_nick = Chatcommand.GetNext(ref message);
 
-			if (length < 2) {
-				E.Say(chan.name, nick + ": Expected arguments: <nick> <text ..>");
+			if (dst_nick.Length < 3) {
+				channel.Say(nick + ": Expected arguments: <nick> <text ..>");
 				return;
 			}
 
-			args[1] = args[1].ToLower();
-			string str = "";
-			for (int i = 2; i < length; i++) {
-				if (i + 1 < length)
-					str += args[i] + ' ';
-				else
-					str += args[i];
-			}
-			if (str.Length < 10) {
+			if (message.Length < 7) {
 				E.Notice(nick, "Too short input text.");
 				return;
 			}
-			if (str.Length > 250) {
+			if (message.Length > 250) {
 				E.Notice(nick, "Too long input text.");
 				return;
 			}
-			if (str == tell_last) {
+			if (message == tell_last) {
 				E.Notice(nick, "Text too repetitive.");
 				return;
 			}
-			foreach (string[] tell_msg in tell_text) {
-				if (tell_msg[3] == str &&
-					TellSimilar(tell_msg[0], args[1])) {
+			foreach (TellInfo info in tell_text) {
+				if (info.text == message && CheckSimilar(info.dst_nick, dst_nick)) {
 					E.Notice(nick, "That message is already in the queue.");
 					return;
 				}
 			}
 
-			tell_last = str;
+			tell_last = message;
 
-			List<int> in_channel = new List<int>();
+			var in_channel = new List<Channel>();
 			string user_normal = null;
-			for (int i = 0; i < E.chans.Length; i++) {
-				if (E.chans[i] != null && E.chans[i].name[0] == '#') {
-					foreach (KeyValuePair<string, string> user in E.chans[i].nicks) {
-						if (TellSimilar(user.Key.ToLower(), args[1])) {
-							in_channel.Add(i);
-							user_normal = user.Key;
-							break;
-						}
-					}
+			foreach (Channel chan in p_manager.UnsafeGetChannels()) {
+				string found = chan.FindNickname(dst_nick);
+				if (found != null) {
+					user_normal = found;
+					in_channel.Add(chan);
 				}
 			}
+
 			if (in_channel.Count > 0) {
-				foreach (int c_id in in_channel) {
-					if (E.chans[c_id].nicks.ContainsKey(nick)) {
+				foreach (Channel chan in in_channel) {
+					if (chan.GetHostmask(nick) != null) {
 						E.Notice(nick, "Found " + user_normal + " in channel " +
-							E.chans[c_id].name + $" no need to use {G.settings["prefix"]}tell.");
+							chan.GetName() + $". No need to use {G.settings["prefix"]}tell.");
 						return;
 					}
 				}
-				E.Say(E.chans[in_channel[0]].name, user_normal + ": TELL from " + nick + ": " + str);
-				E.Notice(nick, "Message directly sent to " + user_normal + " in channel " + E.chans[in_channel[0]].name);
+				in_channel[0].Say(user_normal + ": TELL from " + nick + ": " + message);
+				E.Notice(nick, "Message directly sent to " + user_normal +
+					" in channel " + in_channel[0].GetName() + ".");
 				return;
 			}
-			string date = DateTime.UtcNow.ToString("s");
-			tell_text.Add(new string[] { args[1], nick, date, str });
-			E.Say(chan.name, nick + ": meh okay. I'll look out for that user.");
-			TellSave(true, true);
+
+			tell_text.Add(new TellInfo {
+				dst_nick = dst_nick,
+				src_nick = nick,
+				datetime = DateTime.UtcNow.ToString("s"),
+				text = message
+			});
+			channel.Say(nick + ": meh okay. I'll look out for that user.");
+			TellSave(true);
 		}
 
-		bool TellSimilar(string a, string b)
+		bool CheckSimilar(string a, string b)
 		{
-			// xerox123 xeroxBot -> 3 (16 length)
+			// fooBAR0 fooBOT1 -> 3
 			double sensivity = Math.Min(a.Length, b.Length) / 4.0;
-			double distance = E.LevenshteinDistance(a, b);
+			double distance = Utils.LevenshteinDistance(a, b);
 
 			return distance <= sensivity;
 		}
-		void TellSave(bool check_power, bool needs_save = false)
-		{
-			if (needs_save)
-				tell_save_required = true;
 
-			if (check_power) {
-				if (!E.HDDisON())
-					return;
-			}
+		void TellSave(bool mark_dirty)
+		{
+			tell_save_required |= mark_dirty;
+
 			if (!tell_save_required)
 				return;
 
@@ -162,9 +165,11 @@ namespace MAIN
 			byte[] buf;
 			wr.Write((byte)4);
 
-			foreach (string[] msg in tell_text) {
-				for (int i = 0; i < msg.Length; i++) {
-					buf = E.enc.GetBytes(msg[i]);
+			foreach (TellInfo info in tell_text) {
+				string[] data = info.Serialize();
+
+				for (int i = 0; i < data.Length; i++) {
+					buf = E.enc.GetBytes(data[i]);
 					wr.Write((byte)buf.Length);
 					wr.Write(buf);
 				}
@@ -178,7 +183,7 @@ namespace MAIN
 		void TellLoad()
 		{
 			tell_save_required = false;
-			tell_text = new List<string[]>();
+			tell_text = new List<TellInfo>();
 			if (!System.IO.File.Exists(TELL_TEXT_DB))
 				return;
 
@@ -186,7 +191,7 @@ namespace MAIN
 			System.IO.BinaryReader rd = new System.IO.BinaryReader(stream);
 
 			if (rd.ReadString() != "TT01") {
-				L.Log("m_Tell::TellLoad, invalid database magic", true);
+				L.Log("m_Tell::TellLoad, invalid file magic", true);
 				rd.Close();
 				stream.Close();
 				return;
@@ -203,12 +208,9 @@ namespace MAIN
 
 			int len;
 			byte[] buf;
-			string[] data = null;
+			string[] data = new string[4];
 
 			while (true) {
-				if (i == 0)
-					data = new string[4];
-
 				len = rd.ReadByte();
 				if (len == 0)
 					break;
@@ -217,7 +219,7 @@ namespace MAIN
 
 				i = (i + 1) % 4;
 				if (i == 0)
-					tell_text.Add(data);
+					tell_text.Add(TellInfo.Deserialize(data));
 			}
 
 			rd.Close();
@@ -226,29 +228,29 @@ namespace MAIN
 
 		void TellTell(string nick, string channel)
 		{
-			bool any = false;
+			int removed = 0;
 			string nick_l = nick.ToLower();
 
 			for (int i = 0; i < tell_text.Count; i++) {
-				string[] msg = tell_text[i];
-				if (msg == null) {
-					L.Log("m_Tell::TellTell, msg == null", true);
-					any = true;
+				TellInfo info = tell_text[i];
+
+				if (nick_l != info.dst_nick
+						&& !CheckSimilar(nick_l, info.dst_nick))
 					continue;
-				}
 
-				if (nick_l == msg[0] || TellSimilar(nick_l, msg[0])) {
-					E.Say(channel, nick + ": [UTC " + msg[2] + "] From " + msg[1] + ": " + msg[3]);
-					Thread.Sleep(300);
+				// Nickname match
+				L.Log("src= " + info.src_nick + ", dst= " + info.dst_nick);
+				E.Say(channel, nick + ": [UTC " + info.datetime + "] From " +
+					info.src_nick + ": " + info.text);
+				Thread.Sleep(300);
 
-					any = true;
-					tell_text[i] = null;
-				}
+				removed++;
+				info.src_nick = null;
 			}
-			if (!any)
+			if (removed == 0)
 				return;
 
-			tell_text.RemoveAll(item => item == null);
+			tell_text.RemoveAll(item => item.src_nick == null);
 			tell_save_required = true;
 		}
 	}

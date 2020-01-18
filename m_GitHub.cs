@@ -9,33 +9,34 @@ using System.Diagnostics;
 
 namespace MAIN
 {
-	class m_GitHub
+	class m_GitHub : Module
 	{
 		Dictionary<string, List<string>> github_projects;
 		DateTime github_updated;
 		Thread github_thread;
 
-		public m_GitHub()
+		public m_GitHub(Manager manager) : base("GitHub", manager)
 		{
 			github_updated = DateTime.Now;
 			LoadGithubProjects();
 			github_thread = new Thread(NewsFeedThread);
 			github_thread.Start();
-			E.OnUserSay += OnUserSay;
+
+			p_manager.GetChatcommand().Add(G.settings["prefix"] + "updghp", Cmd_update);
 		}
 
-		void OnUserSay(string nick, ref Channel chan, string message,
-			int length, ref string[] args)
+		void Cmd_update(string nick, string message)
 		{
-			if (args[0] != G.settings["prefix"]+"updghp")
-				return;
+			Channel channel = p_manager.GetChannel();
 
-			if (chan.nicks[nick] != G.settings["owner_hostmask"]) {
-				E.Say(chan.name, nick + ": who are you?");
+			if (channel.GetHostmask(nick) != G.settings["owner_hostmask"]) {
+				channel.Say(nick + ": Permission denied");
 				return;
 			}
+
 			LoadGithubProjects();
-			E.Say(chan.name, nick + ": Updated! Got in total " + github_projects.Count + " Github projects to check.");
+			channel.Say(nick + ": Updated! Got in total " +
+				github_projects.Count + " Github projects to check.");
 		}
 
 		void LoadGithubProjects()
@@ -137,22 +138,17 @@ namespace MAIN
 				if (budspencer.Length > 160)
 					budspencer = budspencer.Remove(150) + " ...";
 
-				string chucknorris = E.colorize(terencehill, 3)
-					+ " @" + E.colorize(repo.Key.Split('/')[1], 5)
-					+ ": " + E.colorize(budspencer, 14)
+				string chucknorris = Utils.Colorize(terencehill, IRC_Color.GREEN)
+					+ " @" + Utils.Colorize(repo.Key.Split('/')[1], IRC_Color.MAROON)
+					+ ": " + Utils.Colorize(budspencer, IRC_Color.LIGHT_GRAY)
 					+ " -> https://github.com/" + repo_info[0] + "/commit/" + cappucino;
 
-				if (repo.Value == null) {
-					for (int x = 0; x < E.chans.Length; x++)
-						if (E.chans[x] != null && E.chans[x].name[0] == '#') {
-							Thread.Sleep(200);
-							E.Say(E.chans[x].name, chucknorris);
-						}
-				} else {
-					foreach (string chan in repo.Value) {
-						Thread.Sleep(200);
-						E.Say(chan, chucknorris);
-					}
+				foreach (Channel chan in p_manager.UnsafeGetChannels()) {
+					if (repo.Value != null && !repo.Value.Contains(chan.GetName()))
+						continue; // If limited to certain channels
+
+					Thread.Sleep(200);
+					chan.Say(chucknorris);
 				}
 				count++;
 			}
