@@ -138,7 +138,7 @@ namespace MAIN
 			chan.Say(nick + ": You successfully disarmed the bomb.");
 		}
 
-		void Cmd_cutewire(string nick)
+		void Cmd_cutewire(string nick, string message)
         {
 			Channel chan = p_manager.GetChannel();
 			chan.Say(nick + ": Are you stupid or what? Try better next time.");
