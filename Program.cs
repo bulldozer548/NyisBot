@@ -182,9 +182,6 @@ namespace MAIN
 
 		void OnUserSay(string nick, string message)
 		{
-			if (message.Length < 4)
-				return;
-
 			#region CTCP
 			string message_l = message.ToLower();
 			if (message_l == "\x01version\x01") {
@@ -249,7 +246,7 @@ namespace MAIN
 				return;
 			}
 
-			if (message.Length < 4 || !message.StartsWith(G.settings["prefix"]))
+			if (message.Length < 2 || !message.StartsWith(G.settings["prefix"]))
 				return;
 
 			manager.OnUserSay(nick, message, length, ref args);
@@ -360,7 +357,7 @@ namespace MAIN
 
 				// Regular user leaves
 				foreach (Channel chan in manager.UnsafeGetChannels()) {
-					if (chan.GetHostmask(nick) == null)
+					if (chan.GetUserData(nick) == null)
 						continue;
 
 					manager.SetActiveChannel(chan.GetName());
@@ -471,9 +468,22 @@ namespace MAIN
 						&& destination.ToUpper() != "AUTH"
 						&& destination != "*"
 						&& nick != "") {
-					manager.SetActiveChannel(destination);
+
+					if (Channel.IsPrivate(destination))
+						manager.SetActiveChannel(nick); // The tables have turned
+					else
+						manager.SetActiveChannel(destination);
+
 					Channel channel = manager.GetChannel();
-					channel.nicks[nick] = hostmask;
+					// Update hostmask or add user
+					{
+						UserData user = channel.GetUserData(nick);
+						if (user == null)
+							user = new UserData(hostmask);
+						else
+							user.hostmask = hostmask;
+						channel.users[nick] = user;
+					}
 
 					OnUserSay(nick, message);
 				} else { // numbers, AUTH request

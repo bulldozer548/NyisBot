@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace MAIN
 {
-	struct TellInfo
+	class TellInfo
 	{
 		public string dst_nick, src_nick, datetime, text;
 
@@ -66,7 +66,7 @@ namespace MAIN
 		public override void OnUserRename(string nick, string old_nick)
 		{
 			foreach (Channel channel in p_manager.UnsafeGetChannels()) {
-				if (channel.nicks.ContainsKey(nick)) {
+				if (channel.GetUserData(nick) != null) {
 					TellTell(nick, channel.GetName());
 					return;
 				}
@@ -89,7 +89,7 @@ namespace MAIN
 				E.Notice(nick, "Too short input text.");
 				return;
 			}
-			if (message.Length > 250) {
+			if (message.Length > byte.MaxValue - 5) {
 				E.Notice(nick, "Too long input text.");
 				return;
 			}
@@ -118,7 +118,7 @@ namespace MAIN
 
 			if (in_channel.Count > 0) {
 				foreach (Channel chan in in_channel) {
-					if (chan.GetHostmask(nick) != null) {
+					if (chan.GetUserData(nick) != null) {
 						E.Notice(nick, "Found " + user_normal + " in channel " +
 							chan.GetName() + $". No need to use {G.settings["prefix"]}tell.");
 						return;
@@ -158,8 +158,8 @@ namespace MAIN
 
 			tell_save_required = false;
 
-			System.IO.FileStream stream = new System.IO.FileStream(TELL_TEXT_DB, System.IO.FileMode.OpenOrCreate);
-			System.IO.BinaryWriter wr = new System.IO.BinaryWriter(stream);
+			var stream = new System.IO.FileStream(TELL_TEXT_DB, System.IO.FileMode.OpenOrCreate);
+			var wr = new System.IO.BinaryWriter(stream);
 
 			wr.Write("TT01");
 			byte[] buf;
@@ -231,15 +231,12 @@ namespace MAIN
 			int removed = 0;
 			string nick_l = nick.ToLower();
 
-			for (int i = 0; i < tell_text.Count; i++) {
-				TellInfo info = tell_text[i];
-
+			foreach (TellInfo info in tell_text) {
 				if (nick_l != info.dst_nick
 						&& !CheckSimilar(nick_l, info.dst_nick))
 					continue;
 
 				// Nickname match
-				L.Log("src= " + info.src_nick + ", dst= " + info.dst_nick);
 				E.Say(channel, nick + ": [UTC " + info.datetime + "] From " +
 					info.src_nick + ": " + info.text);
 				Thread.Sleep(300);
@@ -251,7 +248,8 @@ namespace MAIN
 				return;
 
 			tell_text.RemoveAll(item => item.src_nick == null);
-			tell_save_required = true;
+
+			TellSave(true);
 		}
 	}
 }
