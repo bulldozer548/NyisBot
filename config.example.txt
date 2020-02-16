@@ -6,6 +6,8 @@ identifier = IRC bot - Created by Krock, handcrafted. [C#] 2014-2020
 
 /* Bot prefix */
 prefix = $
+/* Escape character for commands */
+escchar = $
 
 nickname = NyisBot
 password = .

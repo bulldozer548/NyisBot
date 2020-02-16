@@ -306,12 +306,12 @@ namespace MAIN
 
 			UserData user = GetChannel().GetUserData(nick);
 			// Command shortcuts: "$uno p" becomes "$p" unless escaped using "$$"
-			if (user.cmd_scope != null && message[1] != '$') {
+			if (user.cmd_scope != null && message[G.settings["prefix"].Length] != G.settings["escchar"][0]) {
 				if (user.cmd_scope.Run(nick, message.Substring(1)))
 					return;
 			}
 
-			if (message[1] == '$') {
+			if (message[G.settings["prefix"].Length] == G.settings["escchar"][0]) {
 				// Unescape
 				message = message.Substring(1);
 			}
